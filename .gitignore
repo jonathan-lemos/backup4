@@ -1,0 +1,8 @@
+.idea/*
+*.DotSettings.user
+bin/*
+obj/*
+Backup4/bin
+Backup4/obj
+Backup4Tests/bin
+Backup4Tests/obj

@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backup4", "Backup4\Backup4.csproj", "{89B72AF6-945E-4582-AD66-F3BB9A25CFF7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backup4Tests", "Backup4Tests\Backup4Tests.csproj", "{E4F28D90-BB96-4C2D-AE68-DD3208B30D22}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{89B72AF6-945E-4582-AD66-F3BB9A25CFF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89B72AF6-945E-4582-AD66-F3BB9A25CFF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89B72AF6-945E-4582-AD66-F3BB9A25CFF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89B72AF6-945E-4582-AD66-F3BB9A25CFF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E4F28D90-BB96-4C2D-AE68-DD3208B30D22}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4F28D90-BB96-4C2D-AE68-DD3208B30D22}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4F28D90-BB96-4C2D-AE68-DD3208B30D22}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4F28D90-BB96-4C2D-AE68-DD3208B30D22}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
