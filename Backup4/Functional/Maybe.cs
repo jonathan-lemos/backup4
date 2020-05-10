@@ -2,7 +2,7 @@ using System;
 
 namespace Backup4.Functional
 {
-    public class Maybe<T>
+    public readonly struct Maybe<T>
     {
         public readonly bool HasValue;
         private readonly T _value;
@@ -17,11 +17,6 @@ namespace Backup4.Functional
             _value = val;
         }
 
-        private Maybe()
-        {
-            _value = default!;
-        }
-
         public static Maybe<T> None => new Maybe<T>();
 
         public static implicit operator Maybe<T>(T val) => new Maybe<T>(val);
@@ -30,5 +25,20 @@ namespace Backup4.Functional
 
         public Maybe<TNew> Select<TNew>(Func<T, TNew> func) =>
             HasValue ? new Maybe<TNew>(func(_value)) : Maybe<TNew>.None;
+
+        public TRes Match<TRes>(Func<T, TRes> value, Func<TRes> none) =>
+            HasValue ? value(Value) : none();
+
+        public void Match(Action<T> value, Action none)
+        {
+            if (HasValue)
+            {
+                value(Value);
+            }
+            else
+            {
+                none();
+            }
+        }
     }
 }

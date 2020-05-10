@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Backup4.Functional;
 
 namespace Backup4.Misc
 {
@@ -51,6 +52,22 @@ namespace Backup4.Misc
             return tmp;
         }
 
+        public Maybe<T> Pop(CancellationToken token)
+        {
+            try
+            {
+                _filledCount.Wait(token);
+                var tmp = _buffer[_outPtr];
+                _outPtr = (_outPtr + 1) % _buffer.Length;
+                _emptyCount.Release();
+                return tmp!;
+            }
+            catch (OperationCanceledException)
+            {
+                return Maybe<T>.None;
+            }
+        }
+
         public async Task<T> PopAsync()
         {
             await _filledCount.WaitAsync();
@@ -67,7 +84,8 @@ namespace Backup4.Misc
         private readonly IEnumerable<TIn> _producerEnumerable;
         private readonly IEnumerable<TOut> _consumerEnumerable;
         private readonly Thread _producer;
-        private bool _done = false;
+        private readonly CancellationTokenSource _cancelSource;
+        private readonly CancellationToken _token;
 
         private void _producerFunc()
         {
@@ -75,25 +93,46 @@ namespace Backup4.Misc
             {
                 _buffer.Push(thing);
             }
-            _done = true;
+
+            _cancelSource.Cancel();
         }
 
         private IEnumerable<TIn> _consumerFunc()
         {
-            while (!_done || _buffer.Count > 0)
+            var done = false;
+            while (!done || _buffer.Count > 0)
             {
-                yield return _buffer.Pop();
+                if (!done)
+                {
+                    var tmp = _buffer.Pop(_token);
+                    if (tmp.HasValue)
+                    {
+                        yield return tmp.Value;
+                    }
+                    else
+                    {
+                        done = true;
+                    }
+                }
+                else
+                {
+                    yield return _buffer.Pop();
+                }
             }
         }
 
-        public Pipe(IEnumerable<TIn> producer, Func<IEnumerable<TIn>, IEnumerable<TOut>> consumer, int bufferCapacity = 1024)
+        public Pipe(IEnumerable<TIn> producer, Func<IEnumerable<TIn>, IEnumerable<TOut>> consumer,
+            int bufferCapacity = 1024)
         {
+            _cancelSource = new CancellationTokenSource();
+            _token = _cancelSource.Token;
+
             _buffer = new PipeBuffer<TIn>(bufferCapacity);
             _producerEnumerable = producer;
-            
+
             _producer = new Thread(_producerFunc);
             _producer.Start();
-            
+
             _consumerEnumerable = consumer(_consumerFunc());
         }
 
