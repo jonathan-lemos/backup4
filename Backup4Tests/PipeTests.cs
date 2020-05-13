@@ -119,7 +119,7 @@ namespace Backup4Tests
         [Test]
         public void TestBenchmarkSlowBoth()
         {
-            var input = Enumerable.Range(0, 1000).Select(x =>
+            var input = Enumerable.Range(0, 1000).AsParallel().AsOrdered().Select(x =>
             {
                 Thread.Sleep(5);
                 return x;
