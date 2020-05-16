@@ -39,7 +39,13 @@ namespace Backup4.Misc
                     $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
             }
 
-            if (Length == 0)
+            int len;
+            lock (_lengthLock)
+            {
+                len = (int) Length;
+            }
+
+            if (len == 0)
             {
                 if (_done)
                 {
@@ -53,9 +59,14 @@ namespace Backup4.Misc
                 {
                     return 0;
                 }
+
+                lock (_lengthLock)
+                {
+                    len = (int) Length;
+                }
             }
 
-            count = Math.Min(count, (int) Length);
+            count = Math.Min(count, len);
 
             if (count <= Capacity - _beginPos)
             {
@@ -71,9 +82,14 @@ namespace Backup4.Misc
                 Array.Copy(_buffer, 0, buffer, divider, lenFromBeginning);
             }
 
-            _beginPos = (_beginPos + count) % Capacity;
 
-            if (Capacity - Length >= _capacityRequested)
+            lock (_lengthLock)
+            {
+                _beginPos = (_beginPos + count) % Capacity;
+                len = (int) Length;
+            }
+
+            if (Capacity - len - 1 >= _capacityRequested)
             {
                 _notEnoughCapacity.Set();
             }
@@ -99,9 +115,18 @@ namespace Backup4.Misc
                     $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
             }
 
-            if (count > Capacity - Length)
+            int len;
+            lock (_lengthLock)
             {
-                _notEnoughCapacity.Reset();
+                len = (int) Length;
+            }
+
+            if (count > Capacity - len - 1)
+            {
+                if (!_done)
+                {
+                    _notEnoughCapacity.Reset();
+                }
                 _capacityRequested = count;
                 _notEnoughCapacity.Wait();
             }
@@ -120,7 +145,10 @@ namespace Backup4.Misc
                 Array.Copy(buffer, divider, _buffer, 0, lenFromBeginning);
             }
 
-            _endPos = (_endPos + count) % Capacity;
+            lock (_lengthLock)
+            {
+                _endPos = (_endPos + count) % Capacity;
+            }
             _waitingForInput.Set();
         }
 
@@ -128,9 +156,13 @@ namespace Backup4.Misc
         public override bool CanSeek => false;
         public override bool CanWrite => true;
 
-        public override long Length => _endPos >= _beginPos
-            ? _endPos - _beginPos
-            : Capacity - _beginPos + _endPos;
+        private readonly object _lengthLock = new object();
+
+        public override long Length =>
+            _endPos >= _beginPos
+                ? _endPos - _beginPos
+                : Capacity - _beginPos + _endPos;
+
 
         public override long Position { get; set; }
 
@@ -139,6 +171,10 @@ namespace Backup4.Misc
             get => _done;
             set
             {
+                if (!value)
+                {
+                    return;
+                }
                 _done = true;
                 _waitingForInput.Set();
                 _notEnoughCapacity.Set();

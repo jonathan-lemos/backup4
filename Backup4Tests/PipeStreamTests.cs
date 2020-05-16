@@ -79,7 +79,62 @@ namespace Backup4Tests
         }
 
         [Test]
-        public void TestPipeSlowProducer()
+        public void TestPipeBigConsumerSmallPipe()
+        {
+            var pipe = new PipeStream(32);
+
+            var resList = new List<byte>();
+
+            var inputThread = new Thread(() =>
+            {
+                var bytes = Enumerable.Range(0, 10).Select(x => (byte) x).ToArray();
+                for (var i = 0; i < 1000; ++i)
+                {
+                    pipe.Write(bytes, 0, bytes.Length);
+                }
+
+                pipe.Done = true;
+            });
+
+            var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
+                .ToArray();
+
+            var outputThread = new Thread(() =>
+            {
+                int len;
+
+                var buf = new byte[28];
+                while ((len = pipe.Read(buf, 0, buf.Length)) > 0)
+                {
+                    resList.AddRange(buf[..len]);
+                }
+            });
+
+            var input = Enumerable.Range(0, 1000).Select(x =>
+            {
+                Thread.Sleep(5);
+                return x;
+            });
+
+            static IEnumerable<string> Transform(IEnumerable<int> x)
+            {
+                foreach (var i in x)
+                {
+                    yield return i.ToString();
+                }
+            }
+
+            inputThread.Start();
+            outputThread.Start();
+
+            inputThread.Join();
+            outputThread.Join();
+
+            CollectionAssert.AreEqual(expected, resList);
+        }
+
+        [Test]
+        public void TestPipeBigConsumerBigPipe()
         {
             var pipe = new PipeStream(512);
 
@@ -104,6 +159,116 @@ namespace Backup4Tests
                 int len;
 
                 var buf = new byte[28];
+                while ((len = pipe.Read(buf, 0, buf.Length)) > 0)
+                {
+                    resList.AddRange(buf[..len]);
+                }
+            });
+
+            var input = Enumerable.Range(0, 1000).Select(x =>
+            {
+                Thread.Sleep(5);
+                return x;
+            });
+
+            static IEnumerable<string> Transform(IEnumerable<int> x)
+            {
+                foreach (var i in x)
+                {
+                    yield return i.ToString();
+                }
+            }
+
+            inputThread.Start();
+            outputThread.Start();
+
+            inputThread.Join();
+            outputThread.Join();
+
+            CollectionAssert.AreEqual(expected, resList);
+        }
+
+        [Test]
+        public void TestPipeBigProducerSmallPipe()
+        {
+            var pipe = new PipeStream(15);
+
+            var resList = new List<byte>();
+
+            var inputThread = new Thread(() =>
+            {
+                var bytes = Enumerable.Range(0, 10).Select(x => (byte) x).ToArray();
+                for (var i = 0; i < 1000; ++i)
+                {
+                    pipe.Write(bytes, 0, bytes.Length);
+                }
+
+                pipe.Done = true;
+            });
+
+            var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
+                .ToArray();
+
+            var outputThread = new Thread(() =>
+            {
+                int len;
+
+                var buf = new byte[5];
+                while ((len = pipe.Read(buf, 0, buf.Length)) > 0)
+                {
+                    resList.AddRange(buf[..len]);
+                }
+            });
+
+            var input = Enumerable.Range(0, 1000).Select(x =>
+            {
+                Thread.Sleep(5);
+                return x;
+            });
+
+            static IEnumerable<string> Transform(IEnumerable<int> x)
+            {
+                foreach (var i in x)
+                {
+                    yield return i.ToString();
+                }
+            }
+
+            inputThread.Start();
+            outputThread.Start();
+
+            inputThread.Join();
+            outputThread.Join();
+
+            CollectionAssert.AreEqual(expected, resList);
+        }
+
+        [Test]
+        public void TestPipeBigProducerBigPipe()
+        {
+            var pipe = new PipeStream(128);
+
+            var resList = new List<byte>();
+
+            var inputThread = new Thread(() =>
+            {
+                var bytes = Enumerable.Range(0, 10).Select(x => (byte) x).ToArray();
+                for (var i = 0; i < 1000; ++i)
+                {
+                    pipe.Write(bytes, 0, bytes.Length);
+                }
+
+                pipe.Done = true;
+            });
+
+            var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
+                .ToArray();
+
+            var outputThread = new Thread(() =>
+            {
+                int len;
+
+                var buf = new byte[5];
                 while ((len = pipe.Read(buf, 0, buf.Length)) > 0)
                 {
                     resList.AddRange(buf[..len]);
