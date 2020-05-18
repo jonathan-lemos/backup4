@@ -6,6 +6,36 @@ namespace Backup4.Misc
 {
     public class PipeStream : Stream
     {
+        public static (PipeStream Input, PipeStream Output) Connect(int capacity, params Action<Stream, Stream>[] funcs)
+        {
+            if (funcs.Length == 0)
+            {
+                throw new ArgumentException("funcs must have at least one function");
+            }
+            
+            var origInput = new PipeStream(capacity);
+            
+            var input = origInput;
+            var output = origInput;
+            
+            foreach (var func in funcs)
+            {
+                var ip = input;
+                var op = output;
+                
+                new Thread(() =>
+                {
+                    func(ip, op);
+                    ip.Done = true;
+                }).Start();
+
+                input = op;
+                output = new PipeStream(capacity);
+            }
+
+            return (origInput, output);
+        }
+    
         private readonly byte[] _buffer;
         private int _beginPos;
         private int _endPos;
@@ -17,7 +47,7 @@ namespace Backup4.Misc
 
         public PipeStream(int capacity = 4 * 1024 * 1024)
         {
-            _buffer = new byte[capacity];
+            _buffer = new byte[capacity + 1];
             _beginPos = 0;
             _endPos = 0;
             _capacityRequested = 0;
@@ -25,7 +55,7 @@ namespace Backup4.Misc
             _waitingForInput = new ManualResetEventSlim();
         }
 
-        public int Capacity => _buffer.Length;
+        public int Capacity => _buffer.Length - 1;
 
         public override void Flush()
         {
@@ -33,7 +63,7 @@ namespace Backup4.Misc
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            if (count > Capacity)
+            if (count > _buffer.Length)
             {
                 throw new ArgumentException(
                     $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
@@ -68,13 +98,13 @@ namespace Backup4.Misc
 
             count = Math.Min(count, len);
 
-            if (count <= Capacity - _beginPos)
+            if (count <= _buffer.Length - _beginPos)
             {
                 Array.Copy(_buffer, _beginPos, buffer, offset, count);
             }
             else
             {
-                var lenToEnd = Capacity - _beginPos;
+                var lenToEnd = _buffer.Length - _beginPos;
                 var lenFromBeginning = count - lenToEnd;
                 var divider = lenToEnd + offset;
 
@@ -85,11 +115,11 @@ namespace Backup4.Misc
 
             lock (_lengthLock)
             {
-                _beginPos = (_beginPos + count) % Capacity;
+                _beginPos = (_beginPos + count) % _buffer.Length;
                 len = (int) Length;
             }
 
-            if (Capacity - len - 1 >= _capacityRequested)
+            if (_buffer.Length - len - 1 >= _capacityRequested)
             {
                 _notEnoughCapacity.Set();
             }
@@ -109,7 +139,7 @@ namespace Backup4.Misc
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (count > Capacity)
+            if (count > _buffer.Length)
             {
                 throw new ArgumentException(
                     $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
@@ -121,7 +151,7 @@ namespace Backup4.Misc
                 len = (int) Length;
             }
 
-            if (count > Capacity - len - 1)
+            if (count > _buffer.Length - len - 1)
             {
                 if (!_done)
                 {
@@ -131,13 +161,13 @@ namespace Backup4.Misc
                 _notEnoughCapacity.Wait();
             }
 
-            if (count <= Capacity - _endPos)
+            if (count <= _buffer.Length - _endPos)
             {
                 Array.Copy(buffer, offset, _buffer, _endPos, count);
             }
             else
             {
-                var lenToEnd = Capacity - _endPos;
+                var lenToEnd = _buffer.Length - _endPos;
                 var lenFromBeginning = count - lenToEnd;
                 var divider = lenToEnd + offset;
 
@@ -147,7 +177,7 @@ namespace Backup4.Misc
 
             lock (_lengthLock)
             {
-                _endPos = (_endPos + count) % Capacity;
+                _endPos = (_endPos + count) % _buffer.Length;
             }
             _waitingForInput.Set();
         }
@@ -161,7 +191,7 @@ namespace Backup4.Misc
         public override long Length =>
             _endPos >= _beginPos
                 ? _endPos - _beginPos
-                : Capacity - _beginPos + _endPos;
+                : _buffer.Length - _beginPos + _endPos;
 
 
         public override long Position { get; set; }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Backup4.Misc;
+using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
 using Org.BouncyCastle.Crypto.Parameters;
@@ -9,7 +11,23 @@ namespace Backup4.Crypto
 {
     public class Aes256GcmCipher : ICipher
     {
-        private IEnumerable<byte[]> _process(IEnumerable<byte[]> input, int macLen, byte[] key, byte[] iv, bool encrypt)
+        private int _bufLen = 1 << 16;
+
+        public int BufLen
+        {
+            get => _bufLen;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentException("BufLen must be > 1");
+                }
+
+                _bufLen = value;
+            }
+        }
+        
+        private void _process(Stream input, Stream output, int macLen, byte[] key, byte[] iv, bool encrypt)
         {
             macLen *= 8;
             var cipher = new GcmBlockCipher(new AesEngine());
@@ -17,26 +35,28 @@ namespace Backup4.Crypto
             
             cipher.Init(encrypt, par);
 
-            foreach (var block in input)
+            var len = 0;
+            var block = new byte[_bufLen];
+            while ((len = input.Read(block, 0, block.Length)) > 0)
             {
                 var buf = new byte[cipher.GetUpdateOutputSize(block.Length)];
-                var len = cipher.ProcessBytes(block, 0, block.Length, buf, 0);
-                yield return buf.Truncate(len);
+                var lenOut = cipher.ProcessBytes(block, 0, len, buf, 0);
+                output.Write(buf, 0, lenOut);
             }
 
             var tag = new byte[cipher.GetOutputSize(0)];
             var tagLen = cipher.DoFinal(tag, 0);
-            yield return tag.Truncate(tagLen);
+            output.Write(tag, 0, tagLen);
         }
         
-        public IEnumerable<byte[]> Encrypt(IEnumerable<byte[]> input, byte[] key, byte[] iv)
+        public void Encrypt(Stream input, Stream output, byte[] key, byte[] iv)
         {
-            return _process(input, 16, key, iv, true);
+            _process(input, output, 16, key, iv, true);
         }
 
-        public IEnumerable<byte[]> Decrypt(IEnumerable<byte[]> input, byte[] key, byte[] iv)
+        public void Decrypt(Stream input, Stream output, byte[] key, byte[] iv)
         {
-            return _process(input, 16, key, iv, false);
+            _process(input, output, 16, key, iv, false);
         }
     }
 }

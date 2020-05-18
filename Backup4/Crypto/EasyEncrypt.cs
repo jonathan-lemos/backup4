@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Backup4.Misc;
 
@@ -7,7 +8,7 @@ namespace Backup4.Crypto
 {
     public static class EasyEncrypt
     {
-        public static IEnumerable<byte[]> Encrypt(IEnumerable<byte[]> data, string password)
+        public static void Encrypt(Stream input, Stream output, string password)
         {
             using var kdf = new Argon2Kdf();
             var cipher = new Aes256GcmCipher();
@@ -17,15 +18,12 @@ namespace Backup4.Crypto
             try
             {
                 var iv = Random.Bytes(32);
+                
+                output.Write(kdf.Serialize());
+                output.Write(BitConvert.From32((uint) iv.Length));
+                output.Write(iv);
 
-                yield return kdf.Serialize();
-                yield return BitConvert.From32((uint) iv.Length);
-                yield return iv;
-
-                foreach (var block in cipher.Encrypt(data, key, iv))
-                {
-                    yield return block;
-                }
+                cipher.Encrypt(input, output, key, iv);
             }
             finally
             {
@@ -33,19 +31,22 @@ namespace Backup4.Crypto
             }
         }
 
-        public static IEnumerable<byte[]> Decrypt(IEnumerable<byte[]> data, string password)
+        public static void Decrypt(Stream input, Stream output, string password)
         {
             var cipher = new Aes256GcmCipher();
 
-            var en = data.GetEnumerator();
+            var bytes = new List<byte>();
 
-            var (bytes, leftover) = ByteStream.GetBytes(en, 0);
-
-            var ans = Argon2Kdf.Deserialize(bytes);
-            while (ans.HasRight && ans.Right != null)
+            var ans = Argon2Kdf.Deserialize(bytes.ToArray());
+            while (ans.RightIs(x => x != null))
             {
-                (bytes, leftover) = ByteStream.GetBytes(en, bytes.Concat(leftover).ToArray(), ans.Right.Value);
-                ans = Argon2Kdf.Deserialize(bytes);
+                var b = input.GetBytes(ans.Right!.Value - bytes.Count);
+                if (b.Length != ans.Right!.Value - bytes.Count)
+                {
+                    throw new ArgumentException("The data is not long enough to be valid encrypted data.");
+                }
+                bytes.AddRange(b);
+                ans = Argon2Kdf.Deserialize(bytes.ToArray());
             }
 
             using var kdf = ans.Match(
@@ -57,22 +58,26 @@ namespace Backup4.Crypto
             byte[] iv = Array.Empty<byte>();
             try
             {
+                var lenBytes = input.GetBytes(4);
+                if (lenBytes.Length != 4)
+                {
+                    throw new ArgumentException("The data is not valid encrypted data");
+                }
+
+                if (!BitConvert.To32(lenBytes, out var ivLen))
+                {
+                    throw new ArgumentException("The data is not valid encrypted data");
+                }
+
+                iv = input.GetBytes((int) ivLen);
+                if (iv.Length != ivLen)
+                {
+                    throw new ArgumentException("The data is not valid encrypted data");
+                }
+                
                 key = kdf.Derive(password.ToUtf8Bytes(), 32);
-
-                (bytes, leftover) = ByteStream.GetBytes(en, leftover, 4);
-                if (!BitConvert.To32(bytes, out var ivLen))
-                {
-                    throw new ArgumentException("The data is not valid encrypted data.");
-                }
-
-                (bytes, leftover) = ByteStream.GetBytes(en, leftover, (int)ivLen);
-
-                iv = bytes;
-
-                foreach (var block in cipher.Decrypt(new[] {leftover}.Concat(en.AsEnumerable()), key, iv))
-                {
-                    yield return block;
-                }
+                
+                cipher.Decrypt(input, output, key, iv);
             }
             finally
             {

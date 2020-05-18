@@ -58,5 +58,9 @@ namespace Backup4.Functional
                 right(Right);
             }
         }
+
+        
+        public bool LeftIs(Func<TLeft, bool> predicate) => HasLeft && predicate(Left);
+        public bool RightIs(Func<TRight, bool> predicate) => HasRight && predicate(Right);
     }
 }

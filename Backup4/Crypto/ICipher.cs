@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using System.IO;
 
 namespace Backup4.Crypto
 {
     public interface ICipher
     {
-        IEnumerable<byte[]> Encrypt(IEnumerable<byte[]> input, byte[] key, byte[] iv);
+        void Encrypt(Stream input, Stream output, byte[] key, byte[] iv);
         
-        IEnumerable<byte[]> Decrypt(IEnumerable<byte[]> input, byte[] key, byte[] iv);
+        void Decrypt(Stream input, Stream output, byte[] key, byte[] iv);
     }
 }
