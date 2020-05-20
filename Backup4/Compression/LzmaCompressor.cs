@@ -10,6 +10,22 @@ namespace Backup4.Compression
     {
         private int _level = 5;
 
+        private long _decompressLength = 0;
+        
+        public long DecompressLength
+        {
+            get => _decompressLength;
+            set
+            {
+                if (value <= 0)
+                {
+                    throw new ArgumentException("Decompress Length cannot be <= 0");
+                }
+
+                _decompressLength = value;
+            }
+        }
+
         public int Level
         {
             get => _level;
@@ -50,8 +66,8 @@ namespace Backup4.Compression
                 new object[] {dictSize, mode, niceLen, "BT4"}
             );
 
+
             enc.WriteCoderProperties(output);
-            
             enc.Code(input, output, -1, -1, null);
         }
 
@@ -59,15 +75,21 @@ namespace Backup4.Compression
         {
             var dec = new Decoder();
 
+            if (DecompressLength == 0)
+            {
+                throw new ArgumentException("The decompression length needs to be set for LZMA.");
+            }
+
             var props = new byte[5];
             if (input.Read(props, 0, 5) != 5)
             {
                 throw new ArgumentException("The input stream is not long enough to contain LZMA compressed data.");
             }
-            
+
             dec.SetDecoderProperties(props);
-            
-            dec.Code(input, output, -1, -1, null);            
+
+
+            dec.Code(input, output, -1, DecompressLength, null);
         }
     }
 }

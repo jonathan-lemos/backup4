@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text;
 using Backup4.Compression;
@@ -9,7 +10,6 @@ namespace Backup4Tests
 {
     public class LzmaCompressorTests
     {
-        /*
         public static string Repeat(string s, int count)
         {
             var sb = new StringBuilder();
@@ -24,24 +24,27 @@ namespace Backup4Tests
         [Test]
         public void LzmaCompressionDecompression()
         {
-            var compressor = new LzmaCompressor(9);
-            var data = new[] {"abcd", Repeat("xyz", 100)}.Concat(Enumerable.Range(0, 1000000)
-                .Select((x, i) => (Data: x.ToString(), Index: i))
-                .GroupBy(x => x.Index / 10000)
-                .Select(x => string.Join(", ", x.Select(y => y.Data))))
-                .ToList();
+            var compressor = new LzmaCompressor {Level = 9};
+            var data = new[] {"abcd", Repeat("xyz", 100)}
+                .SelectMany(x => x.ToUtf8Bytes())
+                .Concat(Enumerable.Range(0, 1_000_000).Select(x => (byte) x))
+                .ToArray();
 
-            var expected = string.Join("", data);
+            var expected = data.ToArray();
 
-            var compressed = compressor.Compress(data.Select(x => x.ToUtf8Bytes()))
-                .ToList();
+            compressor.DecompressLength = data.Length;
 
-            var decompressed = compressor.Decompress(compressed);
-
-            var res = string.Join("", decompressed.Select(x => x.ToUtf8String()));
+            var compStream = new MemoryStream();
+            compressor.Compress(data.ToStream(), compStream);
+            var compressed = compStream.ToArray();
             
-            Assert.AreEqual(expected, res);
+            Assert.Less(compressed.Length, data.Length);
+
+            var decompStream = new MemoryStream();
+            compressor.Decompress(compressed.ToStream(), decompStream);
+            var decomp = decompStream.ToArray();
+                
+            Assert.AreEqual(expected, decomp);
         }
-        */
     }
 }

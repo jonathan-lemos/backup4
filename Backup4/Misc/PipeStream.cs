@@ -1,41 +1,63 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
+using Backup4.Synchronization;
 
 namespace Backup4.Misc
 {
     public class PipeStream : Stream
     {
-        public static (PipeStream Input, PipeStream Output) Connect(int capacity, params Action<Stream, Stream>[] funcs)
+        public static async Task Connect(Stream input, Stream output, int capacity,
+            params Action<Stream, Stream>[] funcs)
         {
             if (funcs.Length == 0)
             {
                 throw new ArgumentException("funcs must have at least one function");
             }
-            
-            var origInput = new PipeStream(capacity);
-            
-            var input = origInput;
-            var output = origInput;
-            
+
+            var psiOrig = new PipeStream(capacity);
+
+            var psi = psiOrig;
+            var pso = new PipeStream(capacity);
+
+            var tasks = new List<Task>();
+
             foreach (var func in funcs)
             {
-                var ip = input;
-                var op = output;
-                
-                new Thread(() =>
-                {
-                    func(ip, op);
-                    ip.Done = true;
-                }).Start();
+                var ip = psi;
+                var op = pso;
 
-                input = op;
-                output = new PipeStream(capacity);
+                tasks.Add(Task.Run(() =>
+                {
+                    try
+                    {
+                        func(ip, op);
+                    }
+                    finally
+                    {
+                        op.NoMoreInput = true;
+                    }
+                }));
+
+                psi = op;
+                pso = new PipeStream(capacity);
             }
 
-            return (origInput, output);
+            tasks.AddRange(new[]
+            {
+                Task.Run(() =>
+                {
+                    input.CopyToIncremental(psiOrig);
+                    psiOrig.NoMoreInput = true;
+                }),
+                Task.Run(() => psi.CopyToIncremental(output))
+            });
+
+            await Task.WhenAll(tasks);
         }
-    
+
         private readonly byte[] _buffer;
         private int _beginPos;
         private int _endPos;
@@ -53,6 +75,7 @@ namespace Backup4.Misc
             _capacityRequested = 0;
             _notEnoughCapacity = new ManualResetEventSlim();
             _waitingForInput = new ManualResetEventSlim();
+            _lengthLock = new object();
         }
 
         public int Capacity => _buffer.Length - 1;
@@ -65,12 +88,17 @@ namespace Backup4.Misc
         {
             if (count > _buffer.Length)
             {
-                throw new ArgumentException(
-                    $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
+                var interval = Math.Max(Capacity / 2, 1);
+                for (; offset < count; offset += interval)
+                {
+                    Read(buffer, offset, interval);
+                }
+
+                return count;
             }
 
             int len;
-            lock (_lengthLock)
+            using (var _ = new Lock(_lengthLock))
             {
                 len = (int) Length;
             }
@@ -90,7 +118,7 @@ namespace Backup4.Misc
                     return 0;
                 }
 
-                lock (_lengthLock)
+                using (var _ = new Lock(_lengthLock))
                 {
                     len = (int) Length;
                 }
@@ -113,7 +141,7 @@ namespace Backup4.Misc
             }
 
 
-            lock (_lengthLock)
+            using (var _ = new Lock(_lengthLock))
             {
                 _beginPos = (_beginPos + count) % _buffer.Length;
                 len = (int) Length;
@@ -141,12 +169,17 @@ namespace Backup4.Misc
         {
             if (count > _buffer.Length)
             {
-                throw new ArgumentException(
-                    $"The requested count {count} is greater than the capacity {Capacity} of this pipe.");
+                var interval = Math.Max(Capacity / 2, 1);
+                for (; offset < count; offset += interval)
+                {
+                    Write(buffer, offset, interval);
+                }
+
+                return;
             }
 
             int len;
-            lock (_lengthLock)
+            using (var _ = new Lock(_lengthLock))
             {
                 len = (int) Length;
             }
@@ -157,6 +190,7 @@ namespace Backup4.Misc
                 {
                     _notEnoughCapacity.Reset();
                 }
+
                 _capacityRequested = count;
                 _notEnoughCapacity.Wait();
             }
@@ -175,18 +209,20 @@ namespace Backup4.Misc
                 Array.Copy(buffer, divider, _buffer, 0, lenFromBeginning);
             }
 
-            lock (_lengthLock)
+            using (var _ = new Lock(_lengthLock))
             {
                 _endPos = (_endPos + count) % _buffer.Length;
             }
+
             _waitingForInput.Set();
+            Position += count;
         }
 
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => true;
 
-        private readonly object _lengthLock = new object();
+        private readonly object _lengthLock;
 
         public override long Length =>
             _endPos >= _beginPos
@@ -194,9 +230,9 @@ namespace Backup4.Misc
                 : _buffer.Length - _beginPos + _endPos;
 
 
-        public override long Position { get; set; }
+        public override long Position { get; set; } = 0;
 
-        public bool Done
+        public bool NoMoreInput
         {
             get => _done;
             set
@@ -205,6 +241,7 @@ namespace Backup4.Misc
                 {
                     return;
                 }
+
                 _done = true;
                 _waitingForInput.Set();
                 _notEnoughCapacity.Set();

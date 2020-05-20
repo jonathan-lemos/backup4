@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -93,7 +94,7 @@ namespace Backup4Tests
                     pipe.Write(bytes, 0, bytes.Length);
                 }
 
-                pipe.Done = true;
+                pipe.NoMoreInput = true;
             });
 
             var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
@@ -148,7 +149,7 @@ namespace Backup4Tests
                     pipe.Write(bytes, 0, bytes.Length);
                 }
 
-                pipe.Done = true;
+                pipe.NoMoreInput = true;
             });
 
             var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
@@ -203,7 +204,7 @@ namespace Backup4Tests
                     pipe.Write(bytes, 0, bytes.Length);
                 }
 
-                pipe.Done = true;
+                pipe.NoMoreInput = true;
             });
 
             var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
@@ -258,7 +259,7 @@ namespace Backup4Tests
                     pipe.Write(bytes, 0, bytes.Length);
                 }
 
-                pipe.Done = true;
+                pipe.NoMoreInput = true;
             });
 
             var expected = Enumerable.Repeat(Enumerable.Range(0, 10).Select(x => (byte) x), 1000).SelectMany(x => x)
@@ -349,6 +350,62 @@ namespace Backup4Tests
                 .ToList();
 
             CollectionAssert.AreEqual(expected, res);
+        }
+
+        [Test]
+        public async Task ConnectTest()
+        {
+            var input = Enumerable.Range(0, 1028).Select(x => (byte) x).ToArray();
+
+            static void TransformBigger(Stream input, Stream output)
+            {
+                var len = 0;
+                var buf = new byte[69];
+                var zero = new byte[10];
+
+                output.Write(zero, 0, zero.Length);
+                while ((len = input.Read(buf, 0, buf.Length)) > 0)
+                {
+                    output.Write(buf, 0, len);
+                }
+
+                output.Write(zero, 0, zero.Length);
+            }
+
+            static void TransformSmaller(Stream input, Stream output)
+            {
+                var len = 0;
+                var buf = new byte[32];
+
+                while ((len = input.Read(buf, 0, buf.Length)) > 0)
+                {
+                    output.Write(buf, 0, len / 2);
+                }
+            }
+
+            static void TransformSame(Stream input, Stream output)
+            {
+                 var len = 0;
+                 var buf = new byte[69];
+ 
+                 while ((len = input.Read(buf, 0, buf.Length)) > 0)
+                 {
+                     for (var i = 0; i < buf.Length; ++i)
+                     {
+                         buf[i] += 1;
+                     }
+                     output.Write(buf, 0, len / 2);
+                 }               
+            }
+            
+            var output = new MemoryStream();
+            await PipeStream.Connect(input.ToStream(), output, 17,
+                TransformBigger,
+                TransformSmaller,
+                TransformSame);
+
+            var res = output.ToArray();
+            Assert.AreEqual(res.Length, (1028 + 10 + 10) / 2);
         }
     }
 }
