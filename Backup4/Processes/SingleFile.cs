@@ -18,7 +18,7 @@ namespace Backup4.Processes
             
             output.Write(BitConvert.From64((ulong)len));
 
-            await PipeStream.Connect(ips, output, 1024 * 1024,
+            await Pipe.Connect(ips, output, 1024 * 1024,
                 (i, o) => comp.Compress(i, o),
                 (i, o) => EasyEncrypt.Encrypt(i, o, password));
         }
@@ -35,7 +35,7 @@ namespace Backup4.Processes
             
             var comp = new LzmaCompressor {DecompressLength = (long) len};
             
-            await PipeStream.Connect(ips, output, 1024 * 1024,
+            await Pipe.Connect(ips, output, 1024 * 1024,
                 (i, o) => EasyEncrypt.Decrypt(i, o, password),
                 (i, o) => comp.Decompress(i, o));
         }
