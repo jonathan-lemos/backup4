@@ -1,30 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using SevenZip;
-using SevenZip.Compression.LZMA;
+using System.Security.Cryptography;
+using SharpCompress.Compressors;
+using SharpCompress.Compressors.BZip2;
+using SharpCompress.Compressors.LZMA;
 
 namespace Backup4.Compression
 {
     public class LzmaCompressor : ICompressor
     {
         private int _level = 5;
-
-        private long _decompressLength = 0;
-        
-        public long DecompressLength
-        {
-            get => _decompressLength;
-            set
-            {
-                if (value <= 0)
-                {
-                    throw new ArgumentException("Decompress Length cannot be <= 0");
-                }
-
-                _decompressLength = value;
-            }
-        }
 
         public int Level
         {
@@ -55,41 +41,26 @@ namespace Backup4.Compression
 
         public void Compress(Stream input, Stream output)
         {
-            var enc = new Encoder();
-            var (dictSize, mode, niceLen) = _levels[Level - 1];
+            var len = 0;
+            var block = new byte[64 * 1024];
 
-            enc.SetCoderProperties(
-                new[]
-                {
-                    CoderPropID.DictionarySize, CoderPropID.Algorithm, CoderPropID.NumFastBytes, CoderPropID.MatchFinder
-                },
-                new object[] {dictSize, mode, niceLen, "BT4"}
-            );
-
-
-            enc.WriteCoderProperties(output);
-            enc.Code(input, output, -1, -1, null);
+            using var lzStream = new LZipStream(output, CompressionMode.Compress);
+            while ((len = input.Read(block, 0, block.Length)) > 0)
+            {
+                lzStream.Write(block, 0, len);
+            }
         }
 
         public void Decompress(Stream input, Stream output)
         {
-            var dec = new Decoder();
-
-            if (DecompressLength == 0)
+            var len = 0;
+            var block = new byte[64 * 1024];
+            
+            using var lzStream = new LZipStream(input, CompressionMode.Decompress);
+            while ((len = lzStream.Read(block, 0, block.Length)) > 0)
             {
-                throw new ArgumentException("The decompression length needs to be set for LZMA.");
+                output.Write(block, 0, len);
             }
-
-            var props = new byte[5];
-            if (input.Read(props, 0, 5) != 5)
-            {
-                throw new ArgumentException("The input stream is not long enough to contain LZMA compressed data.");
-            }
-
-            dec.SetDecoderProperties(props);
-
-
-            dec.Code(input, output, -1, DecompressLength, null);
         }
     }
 }

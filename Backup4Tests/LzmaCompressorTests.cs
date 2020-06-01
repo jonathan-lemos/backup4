@@ -32,7 +32,6 @@ namespace Backup4Tests
 
             var expected = data.ToArray();
 
-            compressor.DecompressLength = data.Length;
 
             var compStream = new MemoryStream();
             compressor.Compress(data.ToStream(), compStream);

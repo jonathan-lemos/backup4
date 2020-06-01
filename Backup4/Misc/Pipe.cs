@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace Backup4.Misc
@@ -43,10 +42,15 @@ namespace Backup4.Misc
 
                 return Task.Run(() =>
                 {
-                    func(read, write);
-
-                    read.Dispose();
-                    write.Dispose();
+                    try
+                    {
+                        func(read, write);
+                    }
+                    finally
+                    {
+                        read.Dispose();
+                        write.Dispose();   
+                    }
                 });
             });
 
