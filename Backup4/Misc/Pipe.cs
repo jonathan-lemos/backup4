@@ -23,9 +23,8 @@ namespace Backup4.Misc
                 .Select(x => (WriteStream: x, ReadStream: new AnonymousPipeClientStream(x.GetClientHandleAsString())))
                 .ToArray();
 
-            var pairs = new List<(Stream Read, Stream Write)>();
+            var pairs = new List<(Stream Read, Stream Write)> {(input, servers[0].WriteStream)};
 
-            pairs.Add((input, servers[0].WriteStream));
             for (var i = 0; i < servers.Length - 1; ++i)
             {
                 pairs.Add((servers[i].ReadStream, servers[i + 1].WriteStream));
