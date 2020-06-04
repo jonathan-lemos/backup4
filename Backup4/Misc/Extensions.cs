@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Backup4.Misc
+namespace Backup4.Synchronization
 {
     public static class Extensions
     {

@@ -1,10 +1,9 @@
-using System;
 using System.Linq;
 using Backup4.Crypto;
-using Backup4.Misc;
+using Backup4.Synchronization;
 using NUnit.Framework;
 
-namespace Backup4Tests
+namespace Backup4Tests.Crypto
 {
     public class Tests
     {

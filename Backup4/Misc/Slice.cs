@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Backup4.Misc
+namespace Backup4.Synchronization
 {
     public class Slice : IEnumerable<byte>, IEquatable<Slice>, IEquatable<byte[]>
     {

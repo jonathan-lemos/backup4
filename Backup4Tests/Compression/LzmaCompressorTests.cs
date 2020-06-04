@@ -1,12 +1,11 @@
-using System;
 using System.IO;
 using System.Linq;
 using System.Text;
 using Backup4.Compression;
-using Backup4.Misc;
+using Backup4.Synchronization;
 using NUnit.Framework;
 
-namespace Backup4Tests
+namespace Backup4Tests.Compression
 {
     public class LzmaCompressorTests
     {

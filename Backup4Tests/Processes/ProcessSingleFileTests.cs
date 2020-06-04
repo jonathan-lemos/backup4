@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Backup4.Processes;
 using NUnit.Framework;
 
-namespace Backup4Tests
+namespace Backup4Tests.Processes
 {
     public class ProcessSingleFileTests
     {
@@ -19,13 +19,13 @@ namespace Backup4Tests
             
             using var tmp1 = new TempFile(input);
             
-            await SingleFile.Process(tmp1, opStream, password);
+            await SingleFile.Process(new FileStream(tmp1, FileMode.Open), opStream, password);
             var resEnc = opStream.ToArray();
 
             using var tmp2 = new TempFile(resEnc);
             
             var decStream = new MemoryStream();
-            await SingleFile.Deprocess(tmp2, decStream, password);
+            await SingleFile.Deprocess(new FileStream( tmp2, FileMode.Open), decStream, password);
 
             var res = decStream.ToArray();
             

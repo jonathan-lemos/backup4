@@ -1,10 +1,9 @@
-using System;
 using System.IO;
 using System.Linq;
 using Backup4.Crypto;
 using NUnit.Framework;
 
-namespace Backup4Tests
+namespace Backup4Tests.Crypto
 {
     public class Aes256GcmTests
     {

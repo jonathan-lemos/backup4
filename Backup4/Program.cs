@@ -1,4 +1,6 @@
 ﻿using System;
+using Serilog;
+using Serilog.Events;
 
 namespace Backup4
 {
@@ -6,6 +8,11 @@ namespace Backup4
     {
         private static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console(restrictedToMinimumLevel: LogEventLevel.Information,
+                    standardErrorFromLevel: LogEventLevel.Verbose)
+                .CreateLogger();
+
             Console.WriteLine("Hello World!");
         }
     }

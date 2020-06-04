@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Backup4.Functional;
-using Backup4.Misc;
+using Backup4.Synchronization;
 using Sodium;
 
 namespace Backup4.Crypto

@@ -1,11 +1,9 @@
-using System;
 using System.IO;
 using System.Linq;
 using Backup4.Crypto;
-using Backup4.Misc;
 using NUnit.Framework;
 
-namespace Backup4Tests
+namespace Backup4Tests.Crypto
 {
     public class EasyEncryptTest
     {

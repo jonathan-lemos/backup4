@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Backup4.Misc;
+using Backup4.Synchronization;
 
 namespace Backup4.Crypto
 {
