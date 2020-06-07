@@ -10,6 +10,45 @@ namespace Backup4.Synchronization
 {
     public static class Pipe
     {
+        public static async Task Connect(Stream input, Action<Stream> outputFunc, int capacity, int chunkLen = 65536)
+        {
+            var server = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None, capacity);
+            var client = new AnonymousPipeClientStream(server.GetClientHandleAsString());
+
+            var inputTask = Task.Run(() =>
+            {
+                try
+                {
+                    var len = 0;
+                    var buf = new byte[chunkLen];
+                    while ((len = input.Read(buf, 0, buf.Length)) > 0)
+                    {
+                        server.Write(buf, 0, len);
+                    }
+                }
+                finally
+                {
+                    server.Dispose();
+                }
+            });
+
+            var outputTask = Task.Run(() =>
+            {
+                try
+                {
+                    outputFunc(client);
+                }
+                finally
+                {
+                    client.Dispose();
+                }
+            });
+            
+            // server.DisposeLocalCopyOfClientHandle();
+
+            await Task.WhenAll(inputTask, outputTask);
+        }
+
         public static async Task Connect(Action<Stream> inputFunc, Action<Stream> outputFunc, int capacity,
             params Action<Stream, Stream>[] funcs)
         {
@@ -52,7 +91,8 @@ namespace Backup4.Synchronization
                 })
                 .Concat(new[]
                 {
-                    Task.Run(() => {
+                    Task.Run(() =>
+                    {
                         try
                         {
                             inputFunc(servers[0].WriteStream);

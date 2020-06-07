@@ -11,6 +11,8 @@ namespace Backup4.Crypto
 {
     public class Aes256GcmCipher : ICipher
     {
+        public int RequiredKeyLen => 32;
+
         private int _bufLen = 1 << 16;
 
         public int BufLen

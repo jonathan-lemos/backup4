@@ -163,15 +163,30 @@ namespace Backup4Tests.Synchronization
 
             var expected = ms3.ToArray();
 
-            byte[] actual = {};
+            byte[] actual = { };
             await Pipe.Connect(
                 x => ip.ToStream().CopyTo(x),
                 x => actual = x.ToBytes(),
                 17,
-                    TransformBigger,
+                TransformBigger,
                 TransformSmaller,
                 TransformSame);
-            
+
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public async Task ConnectSingleTest()
+        {
+            var ip = Enumerable.Range(0, 1028).Select(x => (byte) x).ToArray();
+            var expected = ip.ToArray();
+
+            byte[] actual = new byte[0];
+            await Pipe.Connect(
+                ip.ToStream(),
+                stream => actual = stream.ToBytes(),
+                17);
+
             Assert.AreEqual(expected, actual);
         }
     }

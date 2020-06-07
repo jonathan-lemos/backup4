@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Backup4.Functional;
 using Backup4.Synchronization;
@@ -9,18 +10,13 @@ namespace Backup4.Crypto
 {
     public class Argon2Kdf : IDisposable, IKdf
     {
+        public static readonly string CipherName = "argon2id";
+
         public static readonly byte[] MagicHeader = {0xB4, (byte) 'A', (byte) 'G', (byte) '2'};
-        public const uint Version = 0x0;
+        public const int Version = 0x0;
         public byte[] Salt { get; set; } = Random.Bytes(16);
-        public uint OpsLimit { get; set; } = 12;
-        public uint MemLimit { get; set; } = 1024 * 1024 * 1024;
-
-
-        public static readonly uint BaseLength =
-            (uint) (MagicHeader.Length + sizeof(uint) + sizeof(uint) + sizeof(uint) +
-                    sizeof(uint) + sizeof(uint));
-
-        public uint HeaderLength => (uint) (BaseLength + Salt.Length);
+        public int OpsLimit { get; set; } = 12;
+        public int MemLimit { get; set; } = 1024 * 1024 * 1024;
 
         public void Dispose()
         {
@@ -29,100 +25,83 @@ namespace Backup4.Crypto
 
         public byte[] Derive(byte[] bytes, int outputLen)
         {
-            return PasswordHash.ArgonHashBinary(bytes, Salt, OpsLimit, (int) MemLimit, outputLen,
+            return PasswordHash.ArgonHashBinary(bytes, Salt, OpsLimit, MemLimit, outputLen,
                 PasswordHash.ArgonAlgorithm.Argon_2ID13);
         }
 
-        public byte[] Serialize()
-        {
-            var bytes = new List<byte>();
-            bytes.AddRange(MagicHeader);
-            bytes.AddRange(BitConvert.From32(Version));
-            bytes.AddRange(BitConvert.From32(HeaderLength));
-            bytes.AddRange(BitConvert.From32(OpsLimit));
-            bytes.AddRange(BitConvert.From32(MemLimit));
-            bytes.AddRange(BitConvert.From32((uint) Salt.Length));
-            bytes.AddRange(Salt);
-            return bytes.ToArray();
-        }
+        public IDictionary<string, object> Properties =>
+            new Dictionary<string, object>
+            {
+                ["cipher"] = CipherName,
+                ["version"] = Version,
+                ["opslimit"] = OpsLimit,
+                ["memlimit"] = MemLimit,
+                ["salt"] = Salt.ToBase64()
+            };
 
-        public static Either<Argon2Kdf, int?> Deserialize(byte[] bytes)
+        public static Result<Argon2Kdf, InvalidDataException> Deserialize(IDictionary<string, object> properties)
         {
             var ret = new Argon2Kdf();
 
-            if (bytes.Length < 8)
+            bool Get<T>(string key, out T value)
             {
-                return 12;
+                if (!properties.ContainsKey(key) || !(properties[key] is T val))
+                {
+                    value = default!;
+                    return false;
+                }
+
+                value = val;
+                return true;
             }
 
-            var ptr = 0;
-
-            if (new Slice(bytes, ptr, 4) != MagicHeader)
+            if (!Get<string>("cipher", out var cipher))
             {
-                return (int?) null;
+                return new InvalidDataException("The cipher dictionary does not have the required 'cipher' field.");
             }
 
-            ptr = 4;
-
-            if (!BitConvert.To32(new Slice(bytes, ptr, 4).ToArray(), out var version))
+            if (cipher != CipherName)
             {
-                return 12;
+                return new InvalidDataException($"The cipher needs to be '{CipherName}' (was '{cipher}').");
             }
 
-            if (version != 0)
+            if (!Get<int>("version", out var version))
             {
-                return (int?) null;
+                return new InvalidDataException("The cipher dictionary does not have the required 'version' field.");
             }
 
-            ptr += 4;
-
-            if (!BitConvert.To32(new Slice(bytes, ptr, 4).ToArray(), out var len))
+            if (version != Version)
             {
-                return 12;
+                return new InvalidDataException(
+                    $"Only version 0x{Version:X4} is supported at the moment (was 0x{version:X4})");
             }
 
-            if (len < 12)
+            if (!Get<int>("opslimit", out var opslimit))
             {
-                return (int?)null;
+                return new InvalidDataException("The cipher dictionary does not have the required 'opslimit' field.");
             }
 
-            ptr += 4;
+            ret.OpsLimit = opslimit;
 
-            if (!BitConvert.To32(new Slice(bytes, ptr, 4).ToArray(), out var opsLimit))
+            if (!Get<int>("memlimit", out var memlimit))
             {
-                return (int?) len;
+                return new InvalidDataException("The cipher dictionary does not have the required 'memlimit' field.");
             }
 
-            ptr += 4;
-            ret.OpsLimit = opsLimit;
+            ret.MemLimit = memlimit;
 
-            if (!BitConvert.To32(new Slice(bytes, ptr, 4).ToArray(), out var memLimit))
+            if (!Get<string>("salt", out var salt))
             {
-                return (int?) len;
+                return new InvalidDataException("The cipher dictionary does not have the required 'salt' field.");
             }
 
-            ptr += 4;
-            ret.MemLimit = memLimit;
-
-            if (!BitConvert.To32(new Slice(bytes, ptr, 4).ToArray(), out var saltLen))
+            var fb64 = salt.FromBase64();
+            if (!fb64)
             {
-                return (int?) len;
+                return new InvalidDataException("The salt is not a valid base64 string.");
             }
 
-            if (saltLen != len - BaseLength)
-            {
-                return (int?) null;
-            }
-
-            ptr += 4;
-
-            var rest = new Slice(bytes, ptr, (int) saltLen);
-            if (rest.Length != saltLen)
-            {
-                return (int?) len;
-            }
-
-            ret.Salt = rest.ToArray();
+            ret.Salt = fb64.Value;
 
             return ret;
         }

@@ -5,7 +5,7 @@ namespace Backup4.Synchronization
 {
     public static class BitConvert
     {
-        public static bool To64(byte[] bytes, out ulong res)
+        public static bool To64(byte[] bytes, out long res)
         {
             if (bytes.Length != 8)
             {
@@ -18,11 +18,11 @@ namespace Backup4.Synchronization
                 bytes = bytes.Reverse().ToArray();
             }
 
-            res = BitConverter.ToUInt64(bytes);
+            res = BitConverter.ToInt64(bytes);
             return true;
         }
 
-        public static bool To32(byte[] bytes, out uint res)
+        public static bool To32(byte[] bytes, out int res)
         {
             if (bytes.Length != 4)
             {
@@ -35,11 +35,11 @@ namespace Backup4.Synchronization
                 bytes = bytes.Reverse().ToArray();
             }
 
-            res = BitConverter.ToUInt32(bytes);
+            res = BitConverter.ToInt32(bytes);
             return true;
         }
 
-        public static bool To16(byte[] bytes, out ushort res)
+        public static bool To16(byte[] bytes, out short res)
         {
             if (bytes.Length != 2)
             {
@@ -52,23 +52,23 @@ namespace Backup4.Synchronization
                 bytes = bytes.Reverse().ToArray();
             }
 
-            res = BitConverter.ToUInt16(bytes);
+            res = BitConverter.ToInt16(bytes);
             return true;
         }
 
-        public static byte[] From64(ulong arg)
+        public static byte[] From64(long arg)
         {
             var tmp = BitConverter.GetBytes(arg);
             return BitConverter.IsLittleEndian ? tmp.Reverse().ToArray() : tmp;
         }
 
-        public static byte[] From32(uint arg)
+        public static byte[] From32(int arg)
         {
             var tmp = BitConverter.GetBytes(arg);
             return BitConverter.IsLittleEndian ? tmp.Reverse().ToArray() : tmp;
         }
 
-        public static byte[] From16(ushort arg)
+        public static byte[] From16(short arg)
         {
             var tmp = BitConverter.GetBytes(arg);
             return BitConverter.IsLittleEndian ? tmp.Reverse().ToArray() : tmp;
