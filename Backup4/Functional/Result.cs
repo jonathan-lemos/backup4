@@ -1,13 +1,46 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using Backup4.Misc;
 
 namespace Backup4.Functional
 {
     public static class Result
     {
+        public static Result<IList<TValue>, AggregateException> Combine<TValue, TException>(
+            this IEnumerable<Result<TValue, TException>> enumerable) where TException : Exception
+        {
+            var values = new List<TValue>();
+            var exceptions = new List<TException>();
+
+            enumerable.ForEach(res => res.Match(
+                val => values.Add(val),
+                ex => exceptions.Add(ex)
+            ));
+
+            if (exceptions.Any())
+            {
+                return new AggregateException(exceptions);
+            }
+
+            return values;
+        }
+
+        public static Result<AggregateException> Combine<TException>(
+            this IEnumerable<Result<TException>> enumerable) where TException : Exception
+        {
+            var exceptions = enumerable
+                .Where(x => !x)
+                .Select(x => x.Error)
+                .ToList();
+
+            return exceptions.Any() ? new AggregateException(exceptions) : Result<AggregateException>.Success;
+        }
+
         public static Result<TValue, Exception> Of<TValue>(Func<TValue> func) => new Result<TValue, Exception>(func);
         public static Result<Exception> Of(Action func) => new Result<Exception>(func);
     }
-    
+
     public class Result<TError> where TError : Exception
     {
         private readonly TError _err;

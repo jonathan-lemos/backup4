@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Backup4.Processes;
-using Backup4.Synchronization;
+using Backup4.Misc;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Tar;
 using SharpCompress.Common;
@@ -14,6 +14,7 @@ namespace Backup4
     {
         public static async Task Do(Options options)
         {
+            /*
             await Pipe.Connect(async stream => await Tar.Make(stream, options.Directories), stream =>
             {
                 var stdout = Console.OpenStandardOutput();
@@ -25,6 +26,7 @@ namespace Backup4
                 }
             }, 1024 * 1024,
                 );
+                */
         }
     }
 }

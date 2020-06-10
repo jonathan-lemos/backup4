@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Backup4.Synchronization;
+using Backup4.Misc;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
@@ -11,6 +11,9 @@ namespace Backup4.Crypto
 {
     public class Aes256GcmCipher : ICipher
     {
+        public const string CipherNameStatic = "aes-256-gcm";
+        public string CipherName => CipherNameStatic;
+
         public int RequiredKeyLen => 32;
 
         private int _bufLen = 1 << 16;

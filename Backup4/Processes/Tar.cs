@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Backup4.Filesystem;
 using Backup4.Functional;
+using Backup4.Misc;
 using Backup4.Synchronization;
 using Mono.Unix.Native;
 using Serilog;
@@ -35,18 +36,18 @@ namespace Backup4.Processes
             }
         }
 
-        public static async Task Make(Stream destination, IEnumerable<string> inputDirs)
+        public static async Task<Result<AggregateException>> Make(Stream destination, IEnumerable<string> inputDirs)
         {
             var opt = new TarWriterOptions(CompressionType.None, true);
             var tarWriter = new TarWriter(destination, opt);
             var buffer = new ConcurrentBuffer<(string Path, string Name, Stat stat)>(4096);
             var cts = new CancellationTokenSource();
 
-            var reader = Task.Run(() =>
+            var reader = Task.Run(() => Result.Of(() =>
             {
                 inputDirs.ForEach(dir => WalkNamesRec(buffer, dir));
                 cts.Cancel();
-            });
+            }));
 
             var writer = Task.Run(async () =>
             {
@@ -54,19 +55,34 @@ namespace Backup4.Processes
                 while ((res = buffer.Pop(cts.Token)).HasValue)
                 {
                     var (path, name, stat) = res.Value;
-                    if (stat.IsDir())
+                    try
                     {
-                        continue;
-                    }
+                        if (stat.IsDir())
+                        {
+                            continue;
+                        }
 
-                    await Pipe.Connect(new FileStream(path, FileMode.Open), stream =>
+                        await using var fs = new FileStream(path, FileMode.Open);
+
+                        var pipe = new Pipe();
+                        pipe.SetInput(fs);
+                        pipe.SetOutput(stream => tarWriter.Write(path, stream, null));
+
+                        (await pipe.Execute()).Match(
+                            () => { },
+                            err => Log.Warning("{path}: {err}", path, err.AllMessages())
+                        );
+                    }
+                    catch (Exception e)
                     {
-                        tarWriter.Write(path, stream, null);
-                    }, 65536);
+                        Log.Warning("{path}: {err}", path, e);
+                    }
                 }
+
+                return Result<Exception>.Success;
             });
 
-            await Task.WhenAll(reader, writer);
+            return (await Task.WhenAll(reader, writer)).Combine();
         }
     }
 }

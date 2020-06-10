@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Backup4.Misc;
 using Backup4.Synchronization;
 using NUnit.Framework;
 
@@ -82,12 +83,15 @@ namespace Backup4Tests.Synchronization
             var expected = ms3.ToArray();
 
             var output = new MemoryStream();
-            await Pipe.Connect(ip.ToStream(), output, 17,
-                TransformBigger,
-                TransformSmaller,
-                TransformSame);
+            
+            var pipe = new Pipe(TransformBigger, TransformSmaller, TransformSame);
+            pipe.SetInput(ip.ToStream());
+            pipe.SetOutput(output);
 
+            var pipeRes = await pipe.Execute();
             var res = output.ToArray();
+            
+            Assert.True(pipeRes);
             Assert.AreEqual(expected, res);
         }
 
@@ -164,13 +168,14 @@ namespace Backup4Tests.Synchronization
             var expected = ms3.ToArray();
 
             byte[] actual = { };
-            await Pipe.Connect(
-                x => ip.ToStream().CopyTo(x),
-                x => actual = x.ToBytes(),
-                17,
-                TransformBigger,
-                TransformSmaller,
-                TransformSame);
+
+            var pipe = new Pipe(TransformBigger, TransformSmaller, TransformSame);
+            pipe.SetInput(x => ip.ToStream().CopyTo(x));
+            pipe.SetOutput(x => actual = x.ToBytes());
+            pipe.BufferSize = 17;
+
+            var res = await pipe.Execute();
+            Assert.True(res);
 
             Assert.AreEqual(expected, actual);
         }
@@ -182,10 +187,14 @@ namespace Backup4Tests.Synchronization
             var expected = ip.ToArray();
 
             byte[] actual = new byte[0];
-            await Pipe.Connect(
-                ip.ToStream(),
-                stream => actual = stream.ToBytes(),
-                17);
+            
+            var pipe = new Pipe();
+            pipe.SetInput(ip.ToStream());
+            pipe.SetOutput(stream => actual = stream.ToBytes());
+            pipe.BufferSize = 17;
+
+            var res = await pipe.Execute();
+            Assert.True(res);
 
             Assert.AreEqual(expected, actual);
         }

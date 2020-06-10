@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace Backup4.Synchronization
+namespace Backup4.Misc
 {
     public static class Paths
     {

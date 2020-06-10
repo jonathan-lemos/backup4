@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
-using Backup4.Synchronization;
+using Backup4.Misc;
 
 namespace Backup4Tests
 {

@@ -2,7 +2,7 @@ using System;
 using System.Threading;
 using Backup4.Functional;
 
-namespace Backup4.Synchronization
+namespace Backup4.Misc
 {
     public class ConcurrentBuffer<T>
     {

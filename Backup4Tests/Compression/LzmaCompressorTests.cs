@@ -2,7 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Backup4.Compression;
-using Backup4.Synchronization;
+using Backup4.Misc;
 using NUnit.Framework;
 
 namespace Backup4Tests.Compression

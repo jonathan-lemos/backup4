@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace Backup4.Synchronization
+namespace Backup4.Misc
 {
     public static class BitConvert
     {

@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace Backup4.Synchronization
+namespace Backup4.Misc
 {
     public static class StreamExtensions
     {

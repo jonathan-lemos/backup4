@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Backup4.Synchronization;
+using Backup4.Misc;
 using NUnit.Framework;
 
 namespace Backup4Tests.Synchronization

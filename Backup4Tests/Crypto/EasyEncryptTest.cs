@@ -20,11 +20,13 @@ namespace Backup4Tests.Crypto
             var password = "abrakadabra";
 
             var encStream = new MemoryStream();
-            EasyEncrypt.Encrypt(testData.ToStream(), encStream, password);
+            var encRes = EasyEncrypt.Encrypt(testData.ToStream(), encStream, password);
+            Assert.True(encRes);
             var enc = encStream.ToArray();
 
             var decStream = new MemoryStream();
-            EasyEncrypt.Decrypt(enc.ToStream(), decStream, password);
+            var decRes = EasyEncrypt.Decrypt(enc.ToStream(), decStream, password);
+            Assert.True(decRes);
             var dec = decStream.ToArray();
 
             CollectionAssert.AreEqual(expected, dec);
