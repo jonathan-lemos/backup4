@@ -102,7 +102,7 @@ namespace Backup4.Functional
 
         public static bool operator false(Result<TError> res) => res.IsError;
 
-        public override string ToString() => (IsError ? _err!.ToString() : $"Result<{typeof(TError).Name}>();")!;
+        public override string ToString() => (IsError ? _err!.ToString() : $"Result<{typeof(TError).Name}>.Success")!;
     }
 
     public class Result<TValue, TError> where TError : Exception

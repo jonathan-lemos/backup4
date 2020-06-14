@@ -45,7 +45,7 @@ namespace Backup4.Functional
         
         public static bool operator false(Option<T> option) => !option.HasValue;
         
-        public override string ToString() => (HasValue ? _val!.ToString() : $"Option<{typeof(T).Name}>();")!;
+        public override string ToString() => (HasValue ? _val!.ToString() : $"Option<{typeof(T).Name}>.Empty")!;
 
         public IEnumerator<T> GetEnumerator()
         {

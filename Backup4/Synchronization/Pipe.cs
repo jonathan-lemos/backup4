@@ -111,11 +111,11 @@ namespace Backup4.Synchronization
                     var (func, pair) = x;
                     var (read, write) = pair;
 
-                    return Task.Run(() =>
+                    return Task.Run(async () =>
                     {
                         try
                         {
-                            func(read, write);
+                            await func(read, write);
                             return Result<Exception>.Success;
                         }
                         catch (Exception e)
@@ -137,6 +137,10 @@ namespace Backup4.Synchronization
                         {
                             return await _inputFunc(servers[0].WriteStream);
                         }
+                        catch (Exception e)
+                        {
+                            return e;
+                        }
                         finally
                         {
                             servers[0].WriteStream.Dispose();
@@ -147,6 +151,10 @@ namespace Backup4.Synchronization
                         try
                         {
                             return await _outputFunc(servers.Last().ReadStream);
+                        }
+                        catch (Exception e)
+                        {
+                            return e;
                         }
                         finally
                         {

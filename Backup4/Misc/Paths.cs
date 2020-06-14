@@ -5,8 +5,8 @@ namespace Backup4.Misc
 {
     public static class Paths
     {
-        private static readonly Regex PatRegex = new Regex(@"^(.*)/[^/]*$");
-        private static readonly Regex FnRegex = new Regex(@"^.*/([^/]*)$");
+        private static readonly Regex PatRegex = new Regex(@"^(.*)/[^/]*/?$");
+        private static readonly Regex FnRegex = new Regex(@"^.*/([^/]*)/?$");
         private static readonly Regex HomeRegex = new Regex(@"^(~/|~$)");
 
         private static readonly string HomeDir =

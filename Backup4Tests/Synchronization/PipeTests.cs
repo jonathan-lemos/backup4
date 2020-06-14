@@ -89,6 +89,8 @@ namespace Backup4Tests.Synchronization
             pipe.SetOutput(output);
 
             var pipeRes = await pipe.Execute();
+            Assert.True(pipeRes);
+            
             var res = output.ToArray();
             
             Assert.True(pipeRes);

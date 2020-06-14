@@ -8,7 +8,6 @@ namespace Backup4.Models
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        public DirectoryModel? Parent { get; set; }
         
         public string Path { get; set; } = null!;
         public string Name { get; set; } = null!;

@@ -33,10 +33,7 @@ namespace Backup4.Models
             builder.Entity<DirectoryModel>()
                 .HasIndex(d => d.Path)
                 .IsUnique();
-
-            builder.Entity<DirectoryModel>()
-                .HasIndex(d => d.Parent);
-
+            
             builder.Entity<SymlinkModel>()
                 .HasIndex(s => new {s.DirectoryId, s.Filename})
                 .IsUnique();

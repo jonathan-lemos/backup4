@@ -19,13 +19,15 @@ namespace Backup4Tests.Processes
             
             using var tmp1 = new TempFile(input);
             
-            await SingleFile.Process(new FileStream(tmp1, FileMode.Open), opStream, password);
+            var encRes = await SingleFile.Process(new FileStream(tmp1, FileMode.Open), opStream, password);
+            Assert.True(encRes);
             var resEnc = opStream.ToArray();
 
             using var tmp2 = new TempFile(resEnc);
             
             var decStream = new MemoryStream();
-            await SingleFile.Deprocess(new FileStream( tmp2, FileMode.Open), decStream, password);
+            var decRes = await SingleFile.Deprocess(new FileStream( tmp2, FileMode.Open), decStream, password);
+            Assert.True(decRes);
 
             var res = decStream.ToArray();
             
