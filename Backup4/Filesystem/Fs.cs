@@ -27,7 +27,7 @@ namespace Backup4.Filesystem
                 return (full, name, stat);
             }
 
-            return (full, name, new FsException(Stdlib.GetLastError()));
+            return (full, name, new FsException(full));
         }
 
         public static IEnumerable<(string Path, string Name, Result<Stat, FsException> Stat)> ReadDir(string path)
@@ -37,7 +37,7 @@ namespace Backup4.Filesystem
                 var fullPat = Path.Join(path, fname);
                 if (Syscall.stat(fname, out var stat) != 0)
                 {
-                    yield return (fullPat, fname, new FsException(Stdlib.GetLastError()));
+                    yield return (fullPat, fname, new FsException(fullPat));
                     continue;
                 }
 

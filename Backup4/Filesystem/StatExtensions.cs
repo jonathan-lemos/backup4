@@ -10,7 +10,7 @@ namespace Backup4.Filesystem
             var g = Syscall.getgrgid((uint)gid);
             if (g == null)
             {
-                return new FsException(Stdlib.GetLastError());
+                return new FsException($"Failed to get group information for gid {gid}");
             }
 
             return g.gr_name;
@@ -21,7 +21,7 @@ namespace Backup4.Filesystem
             var g = Syscall.getgrnam(name);
             if (g == null)
             {
-                return new FsException(Stdlib.GetLastError());
+                return new FsException($"Failed to get group information for '{name}'");
             }
 
             return g.gr_gid;
@@ -32,7 +32,7 @@ namespace Backup4.Filesystem
              var g = Syscall.getpwuid((uint)uid);
              if (g == null)
              {
-                 return new FsException(Stdlib.GetLastError());
+                 return new FsException($"Failed to get passwd information for uid {uid}");
              }
  
              return g.pw_name;
@@ -43,7 +43,7 @@ namespace Backup4.Filesystem
              var g = Syscall.getpwnam(name);
              if (g == null)
              {
-                 return new FsException(Stdlib.GetLastError());
+                 return new FsException($"Failed to get passwd information for {name}");
              }
  
              return g.pw_gid;
