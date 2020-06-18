@@ -6,7 +6,11 @@ namespace Backup4Tests
     public class TempFile : IDisposable
     {
         public string Filename { get; }
-        
+
+        public TempFile() : this(new byte[0])
+        {
+        }
+
         public TempFile(byte[] content)
         {
             Filename = Path.GetTempPath() + Guid.NewGuid() + ".tmp";

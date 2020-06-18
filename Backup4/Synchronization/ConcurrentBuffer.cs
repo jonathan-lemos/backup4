@@ -81,7 +81,10 @@ namespace Backup4.Misc
         {
             try
             {
-                _filledCount.Wait(token);
+                if (!_filledCount.Wait(0))
+                {
+                    _filledCount.Wait(token);
+                }
             }
             catch (OperationCanceledException)
             {

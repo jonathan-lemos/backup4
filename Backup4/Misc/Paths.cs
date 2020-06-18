@@ -21,7 +21,13 @@ namespace Backup4.Misc
         public static string Directory(string path)
         {
             var match = PatRegex.Match(path);
-            return !match.Success ? path : match.Groups[1].Value;
+            var res = !match.Success ? path : match.Groups[1].Value;
+            if (!res.EndsWith("/"))
+            {
+                res += "/";
+            }
+
+            return res;
         }
 
         public static string Absolute(string path)

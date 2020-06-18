@@ -16,7 +16,7 @@ namespace Backup4.Filesystem
         {
         }
 
-        public FsException(string message, Errno errnum, Exception innerException = null) :
+        public FsException(string message, Errno errnum, Exception? innerException = null) :
             base($"{message}: {Stdlib.strerror(errnum)}.", innerException)
         {
         }
@@ -26,12 +26,12 @@ namespace Backup4.Filesystem
         {
         }
 
-        public FsException(string message, string path, Errno errnum, Exception innerException = null) :
+        public FsException(string message, string path, Errno errnum, Exception? innerException = null) :
             base($"{message}. {path}: {Stdlib.strerror(errnum)}", innerException)
         {
         }
 
-        public FsException(Errno errnum, Exception innerException = null) :
+        public FsException(Errno errnum, Exception? innerException = null) :
             base(Stdlib.strerror(errnum), innerException)
         {
         }

@@ -37,6 +37,11 @@ namespace Backup4.Misc
         public static Slice Slice(this byte[] b, int begin) => new Slice(b, begin);
         public static Slice Slice(this byte[] b, int begin, int length) => new Slice(b, begin, length);
 
+        
+        public static int Octal(this int l) => Convert.ToInt32(l.ToString(), 8);
+        
+        public static long Octal(this long l) => Convert.ToInt64(l.ToString(), 8);
+
         public static bool TryGet<T>(this IDictionary<string, object> properties, string key, out T value)
         {
             if (!properties.ContainsKey(key))
